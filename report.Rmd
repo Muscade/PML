@@ -5,18 +5,46 @@ date: "Sunday, May 24, 2015"
 output: html_document
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+1. Project description
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. 
 
+The goal of your project is to predict the manner in which people did the exercise. This is the "classe" variable in the training set. 
+
+2. Loading data
 ```{r}
-summary(cars)
+library(caret)
+pmlTesting <- read.csv("pml-testing.csv")
+pmlTraining <- read.csv("pml-training.csv")
 ```
 
-You can also embed plots, for example:
+3. Preprocessing data
+```{r}
+# Removing NAs
+pmlTraining[is.na(pmlTraining)] <-0
 
-```{r, echo=FALSE}
-plot(cars)
+# Removing near zero variables
+nzv <- nearZeroVar(pmlTraining)
+pmlTraining <- pmlTraining[, -nzv]
+
+inTrain <- createDataPartition(pmlTraining$classe, p = 0.75, list=F)
+training <- pmlTraining[inTrain,]
+testing <- pmlTraining[-inTrain,]
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+4. Building CART model
+```{r}
+modFit <- train(classe ~ ., method="rpart", data=training)
+```
+
+5. Estimating out of the sample error
+```{r}
+predictions <-predict(modFit, newdata = testing)
+confusionMatrix(predictions, testing$classe)
+```
+The accuracy ratio is rather low. The model predicts poorly classes C, D, E. This may be due to ommited variables.
+
+6. Making predictions
+```{r}
+predict(modFit, newdata = pmlTesting)
+```
